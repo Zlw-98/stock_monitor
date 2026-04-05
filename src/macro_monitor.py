@@ -122,6 +122,35 @@ class MacroMonitor:
         
         return analysis
     
+    def get_upcoming_events(self, macro_calendar: List[Dict], days: int = 30) -> List[Dict[str, Any]]:
+        """
+        获取未来几天的宏观事件
+
+        Args:
+            macro_calendar: 宏观日历数据
+            days: 未来天数
+
+        Returns:
+            未来几天的宏观事件列表
+        """
+        today = datetime.now()
+        upcoming = []
+
+        for data in macro_calendar:
+            try:
+                data_date = datetime.strptime(data.get('date'), "%Y-%m-%d")
+                days_until = (data_date - today).days
+                if 0 <= days_until <= days:
+                    event = data.copy()
+                    event['days_until'] = days_until
+                    upcoming.append(event)
+            except:
+                continue
+
+        # 按日期排序
+        upcoming.sort(key=lambda x: x.get('date', ''))
+        return upcoming
+
     def get_macro_impact(self, data_name: str, actual_value: str, expected_value: str) -> str:
         """
         分析宏观数据对市场的影响

@@ -28,9 +28,9 @@ class ConfigManager:
         try:
             with open(self.config_file, 'r', encoding='utf-8') as f:
                 self.config = yaml.safe_load(f)
-            print(f"✅ 配置文件加载成功: {self.config_file}")
+            print(f"[OK] 配置文件加载成功: {self.config_file}")
         except Exception as e:
-            print(f"❌ 配置文件加载失败: {e}")
+            print(f"[ERROR] 配置文件加载失败: {e}")
             # 使用默认配置
             self._load_default_config()
     
@@ -72,7 +72,7 @@ class ConfigManager:
             "data_dir": "./data",
             "logs_dir": "./logs"
         }
-        print("⚠️ 使用默认配置")
+        print("[WARNING] 使用默认配置")
     
     def get_stocks(self) -> List[Dict[str, str]]:
         """获取监控股票列表"""

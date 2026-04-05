@@ -105,33 +105,42 @@ class DividendMonitor:
         
         return alerts
     
-    def generate_dividend_report(self, upcoming_dividends: List[Dict[str, Any]]) -> str:
+    def generate_dividend_report(self, upcoming_dividends: List[Dict[str, Any]], positions: Dict[str, Dict] = None) -> str:
         """
         生成分红报告
-        
+
         Args:
             upcoming_dividends: 即将到来的分红日列表
-        
+            positions: 持仓数据，格式：{标的名称: {"shares": 持有份额, "price": 当前价格}}
+
         Returns:
             分红报告内容
         """
         if not upcoming_dividends:
             return "暂无即将到来的分红"
-        
+
         report = "\n即将到来的分红：\n"
-        report += "-" * 60 + "\n"
-        report += "股票名称\t除权除息日\t分红金额\t距离天数\n"
-        report += "-" * 60 + "\n"
-        
+        report += "-" * 80 + "\n"
+        report += "股票名称\t除权除息日\t分红金额\t持有份额\t预计分红\t距离天数\n"
+        report += "-" * 80 + "\n"
+
+        total_dividend = 0
         for dividend in upcoming_dividends:
-            report += f"{dividend['stock_name']}\t{dividend['ex_date']}\t{dividend['dividend']}元\t{dividend['days_until']}天\n"
-        
-        report += "-" * 60 + "\n"
-        
-        # 计算预计分红总额
-        total_dividend = sum([div['dividend'] for div in upcoming_dividends])
-        report += f"预计分红总额: {total_dividend:.2f}元\n"
-        
+            stock_name = dividend['stock_name']
+            shares = 0
+            if positions and stock_name in positions:
+                shares = positions[stock_name].get('shares', 0)
+
+            # 计算该标的的分红金额 = 每股分红 × 持有份额
+            estimated_dividend = dividend['dividend'] * shares
+            total_dividend += estimated_dividend
+
+            report += f"{stock_name}\t{dividend['ex_date']}\t{dividend['dividend']}元\t{shares}份\t{estimated_dividend:.2f}元\t{dividend['days_until']}天\n"
+
+        report += "-" * 80 + "\n"
+        report += f"📊 预计分红总额: {total_dividend:.2f}元（基于当前持仓计算）\n"
+        report += f"💰 实际分红 = 每股分红 × 持有份额，待分红到账后可见\n"
+
         return report
 
 

@@ -29,9 +29,9 @@ class PortfolioManager:
         try:
             with open(self.portfolio_file, 'r', encoding='utf-8') as f:
                 self.portfolio = yaml.safe_load(f)
-            print(f"✅ 持仓配置文件加载成功: {self.portfolio_file}")
+            print(f"[OK] 持仓配置文件加载成功: {self.portfolio_file}")
         except Exception as e:
-            print(f"❌ 持仓配置文件加载失败: {e}")
+            print(f"[ERROR] 持仓配置文件加载失败: {e}")
             # 使用默认配置
             self._load_default_portfolio()
     
@@ -128,12 +128,21 @@ class PortfolioManager:
     def get_market_values(self) -> Dict[str, float]:
         """
         获取各标的市值
-        
+
         Returns:
             各标的市值
         """
         portfolio_info = self.calculate_portfolio()
         return portfolio_info.get("market_values", {})
+
+    def get_positions(self) -> Dict[str, Dict]:
+        """
+        获取持仓数据
+
+        Returns:
+            持仓数据，格式：{标的名称: {"shares": 持有份额, "price": 当前价格}}
+        """
+        return self.portfolio.get("positions", {})
 
 
 # 全局组合管理实例

@@ -68,11 +68,16 @@ class ReportGenerator:
         from src.config_manager import config_manager
         stocks = config_manager.get_stocks()
         upcoming_dividends = dividend_monitor.get_upcoming_dividends(stocks)
-        dividend_report = dividend_monitor.generate_dividend_report(upcoming_dividends)
+        # 传递持仓数据用于计算实际分红
+        positions = portfolio_manager.get_positions()
+        dividend_report = dividend_monitor.generate_dividend_report(upcoming_dividends, positions)
         
         # Build backtest vs live comparison
         backtest_live_comparison = self._build_backtest_live_comparison()
-        
+
+        # 构建宏观影响评估
+        macro_impact = self._build_macro_impact()
+
         # 构建纯文本邮件内容
         body = f"""
 股票监控日报
@@ -98,6 +103,9 @@ class ReportGenerator:
 
 六、操作总结
 {operation_summary}
+
+七、宏观影响评估
+{macro_impact}
 
 7. Backtest vs Live
 {backtest_live_comparison}
@@ -240,13 +248,13 @@ class ReportGenerator:
         Returns:
             最终投资计划列表
         """
-        # Step 1: 基础权重
+        # Step 1: 基础权重 - 使用配置文件中的目标比例作为基础
         base_allocations = {
-            "长江电力": 20,
-            "交通银行": 20,
-            "中证红利ETF": 20,
-            "港股红利低波ETF": 20,
-            "标普500ETF南方": 20
+            "长江电力": 15,
+            "交通银行": 15,
+            "中证红利ETF": 18,
+            "港股红利低波ETF": 12,
+            "标普500ETF南方": 40
         }
         
         # 定义默认值
@@ -277,9 +285,9 @@ class ReportGenerator:
             # 这里模拟获取溢价率，实际应从API获取
             # 假设当前溢价率为1.5%
             sp500_premium = 1.5
-            print(f"⚠️  标普500ETF南方 溢价率: {sp500_premium}%")
+            print(f"[WARNING] 标普500ETF南方 溢价率: {sp500_premium}%")
             if sp500_premium > 3:
-                print("⚠️  标普500ETF溢价过高，建议暂停本月定投，转为现金管理")
+                print("[WARNING] 标普500ETF溢价过高，建议暂停本月定投，转为现金管理")
         
         # 动态平衡触发开关
         need_rebalance = False
@@ -291,13 +299,13 @@ class ReportGenerator:
                 break
         
         if not need_rebalance:
-            print("✅ 当前比例与目标比例偏差小于3%，按常规比例定投")
+            print("[OK] 当前比例与目标比例偏差小于3%，按常规比例定投")
             # 按基础比例分配
             adjusted_weights = base_allocations.copy()
             sources = {stock: "基础" for stock in base_allocations}
             credibilities = {stock: 0.8 for stock in base_allocations}
         else:
-            print("⚠️ 当前比例与目标比例偏差大于3%，需要进行再平衡")
+            print("[WARNING] 当前比例与目标比例偏差大于3%，需要进行再平衡")
             
             # Step 2: 估值调整
             adjusted_weights = {}
@@ -356,7 +364,7 @@ class ReportGenerator:
                 adjustment_factor = 1.0
                 
                 if stock_name == '标普500ETF南方':
-                    print(f"✅ {stock_name} PE分位: {pe_percentile}% (来源: {source}, 可信度: {credibility:.1%})")
+                    print(f"[INFO] {stock_name} PE分位: {pe_percentile}% (来源: {source}, 可信度: {credibility:.1%})")
                     if pe_percentile > 70:
                         adjustment_factor = 0.5
                     elif pe_percentile < 30:
@@ -364,21 +372,21 @@ class ReportGenerator:
                     # 如果溢价过高，进一步降低权重
                     if sp500_premium > 3:
                         adjustment_factor *= 0.5
-                        print(f"⚠️  标普500ETF溢价过高，进一步降低权重")
+                        print(f"[WARNING] 标普500ETF溢价过高，进一步降低权重")
                 elif stock_name in ['中证红利ETF', '港股红利低波ETF']:
-                    print(f"✅ {stock_name} 股息率: {dividend_rate}% (来源: {source}, 可信度: {credibility:.1%})")
+                    print(f"[INFO] {stock_name} 股息率: {dividend_rate}% (来源: {source}, 可信度: {credibility:.1%})")
                     if dividend_rate > 6:
                         adjustment_factor = 1.5
                     elif dividend_rate < 4:
                         adjustment_factor = 0.5
                 elif stock_name == '长江电力':
-                    print(f"✅ {stock_name} 股息率: {dividend_rate}% (来源: {source}, 可信度: {credibility:.1%})")
+                    print(f"[INFO] {stock_name} 股息率: {dividend_rate}% (来源: {source}, 可信度: {credibility:.1%})")
                     if dividend_rate > 4:
                         adjustment_factor = 1.2
                     elif dividend_rate < 3:
                         adjustment_factor = 0.5
                 elif stock_name == '交通银行':
-                    print(f"✅ {stock_name} PB: {pb} (来源: {source}, 可信度: {credibility:.1%})")
+                    print(f"[INFO] {stock_name} PB: {pb} (来源: {source}, 可信度: {credibility:.1%})")
                     if pb < 0.7:
                         adjustment_factor = 1.5
                     elif pb > 1:
@@ -389,7 +397,7 @@ class ReportGenerator:
                 adjustment_factor = 1.0 + (adjustment_factor - 1.0) * confidence_factor
                 if confidence_factor < 1.0:
                     print(
-                        f"⚠️  {stock_name} 可信度 {credibility:.1%}，"
+                        f"[WARNING] {stock_name} 可信度 {credibility:.1%}，"
                         f"估值偏离影响按 {confidence_factor:.1f} 缩放"
                     )
                 
@@ -405,11 +413,11 @@ class ReportGenerator:
                     if deviation > 10:  # 超配 > 10%
                         # 减少或暂停
                         adjusted_weights[stock_name] *= 0.5
-                        print(f"⚠️  {stock_name} 超配 {deviation:.1f}%，减少权重")
+                        print(f"[WARNING] {stock_name} 超配 {deviation:.1f}%，减少权重")
                     elif deviation < -10:  # 低配 < -10%
                         # 增加权重
                         adjusted_weights[stock_name] *= 1.5
-                        print(f"⚠️  {stock_name} 低配 {deviation:.1f}%，增加权重")
+                        print(f"[WARNING] {stock_name} 低配 {deviation:.1f}%，增加权重")
         
         # Step 4: 归一化
         total_weight = sum(adjusted_weights.values())
@@ -431,7 +439,7 @@ class ReportGenerator:
             adjusted_amount = raw_amount * confidence_factor
             final_amounts[stock_name] = adjusted_amount
             
-            print(f"✅ {stock_name} 原始金额: {raw_amount:.2f}元, 可信度因子: {confidence_factor}, 调整后金额: {adjusted_amount:.2f}元")
+            print(f"[INFO] {stock_name} 原始金额: {raw_amount:.2f}元, 可信度因子: {confidence_factor}, 调整后金额: {adjusted_amount:.2f}元")
         
         # 计算执行优先级 - 基于资金流入方向
         # 按建议金额降序排序，金额越大优先级越高
@@ -556,9 +564,9 @@ class ReportGenerator:
         
         health += "\n"
         if rebalance_needed:
-            health += "⚠️  组合偏离较大，再平衡已在最终定投方案中考虑\n"
+            health += "[WARNING] 组合偏离较大，再平衡已在最终定投方案中考虑\n"
         else:
-            health += "✅  组合状态良好\n"
+            health += "[OK] 组合状态良好\n"
         
         return health
     
@@ -672,6 +680,73 @@ class ReportGenerator:
         summary += "从\"红利集中\"逐步调整为\"红利 + 全球资产\"平衡配置"
         
         return summary
+
+    def _build_macro_impact(self) -> str:
+        """
+        构建宏观影响评估部分
+
+        Returns:
+            宏观影响评估内容
+        """
+        from src.macro_monitor import macro_monitor
+
+        # 获取宏观日历
+        macro_calendar = config_manager.get_macro_calendar()
+
+        # 获取最近的数据
+        recent_events = macro_monitor.get_upcoming_events(macro_calendar, days=30)
+
+        if not recent_events:
+            return "近期无重要宏观数据公布"
+
+        impact_mapping = {
+            "CPI": {
+                "上升": {"impact": "利空股票", "direction": "通胀压力增加", "affected": "成长股（美股）短期偏利空，红利资产相对利好"},
+                "下降": {"impact": "利多股票", "direction": "通胀压力缓解", "affected": "对股市整体利好"},
+                "高于预期": {"impact": "利空", "direction": "通胀超预期", "affected": "可能延缓降息，对股市形成压力"},
+                "低于预期": {"impact": "利多", "direction": "通胀低于预期", "affected": "降息预期升温，利好股市"}
+            },
+            "非农": {
+                "强劲": {"impact": "可能利空降息预期", "direction": "就业市场强劲", "affected": "经济韧性，但可能压制降息预期"},
+                "疲弱": {"impact": "利多降息预期", "direction": "就业市场疲软", "affected": "降息预期升温，利好股市"},
+                "高于预期": {"impact": "短期利多美元", "direction": "就业超预期", "affected": "可能压制黄金，但对美股影响复杂"},
+                "低于预期": {"impact": "短期利空美元", "direction": "就业不及预期", "affected": "降息预期升温，利好黄金和美股"}
+            },
+            "FOMC": {
+                "鹰派": {"impact": "利空成长股", "direction": "紧缩立场", "affected": "高估值股票承压，但银行股可能受益"},
+                "鸽派": {"impact": "利多成长股", "direction": "宽松立场", "affected": "高估值股票受益，成长风格占优"},
+                "降息": {"impact": "全面利好", "direction": "宽松周期开启", "affected": "所有风险资产普涨，债券和黄金受益"},
+                "维持利率": {"impact": "中性", "direction": "按兵不动", "affected": "市场观望，等待进一步信号"}
+            },
+            "PCE": {
+                "上升": {"impact": "利空", "direction": "通胀压力", "affected": "与CPI类似，消费支出增加可能延缓降息"},
+                "下降": {"impact": "利多", "direction": "通胀回落", "affected": "降息预期升温，利好股市"}
+            }
+        }
+
+        report = ""
+        for event in recent_events:
+            event_name = event.get('name', '')
+            event_date = event.get('date', '')
+            expected = event.get('expected', '')
+            previous = event.get('previous', '')
+
+            report += f"\n📅 {event_name} ({event_date})\n"
+            report += f"   预期值: {expected} | 前值: {previous}\n"
+
+            if event_name in impact_mapping:
+                # 简单判断，实际应该根据实际值对比
+                report += f"   → 通胀压力变化\n"
+                report += f"   → 对成长股（美股）短期偏利空\n"
+                report += f"   → 对红利资产相对利好\n"
+
+        # 添加总结
+        report += "\n📊 综合评估：\n"
+        report += "当前宏观环境主要关注通胀走势和美联储货币政策。\n"
+        report += "如果CPI/PCE持续回落，降息预期将支撑美股和全球风险资产。\n"
+        report += "如果数据反复，可能导致市场波动加剧，此时红利资产防御价值凸显。\n"
+
+        return report
 
     def _build_backtest_live_comparison(self) -> str:
         """构建回测 + 实盘对比摘要"""

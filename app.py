@@ -109,7 +109,7 @@ def get_valuation_data(stock_name):
             source = "计算"
         else:
             dividend_rate = default_data['dividend_rate']
-        print(f"✅ 长江电力估值数据: 股息率={dividend_rate}% (来源: {source}, 可信度: {credibility:.1%})")
+        print(f"[OK] 长江电力估值数据: 股息率={dividend_rate}% (来源: {source}, 可信度: {credibility:.1%})")
         return {
             "估值": f"{dividend_rate}%",
             "估值指标": "股息率",
@@ -125,7 +125,7 @@ def get_valuation_data(stock_name):
             source = "计算"
         else:
             pb = default_data['pb']
-        print(f"✅ 交通银行估值数据: PB={pb} (来源: {source}, 可信度: {credibility:.1%})")
+        print(f"[OK] 交通银行估值数据: PB={pb} (来源: {source}, 可信度: {credibility:.1%})")
         return {
             "估值": f"{pb}",
             "估值指标": "PB",
@@ -141,7 +141,7 @@ def get_valuation_data(stock_name):
             source = "计算"
         else:
             dividend_rate = default_data['dividend_rate']
-        print(f"✅ 中证红利ETF估值数据: 股息率={dividend_rate}% (来源: {source}, 可信度: {credibility:.1%})")
+        print(f"[OK] 中证红利ETF估值数据: 股息率={dividend_rate}% (来源: {source}, 可信度: {credibility:.1%})")
         return {
             "估值": f"{dividend_rate}%",
             "估值指标": "股息率",
@@ -157,7 +157,7 @@ def get_valuation_data(stock_name):
             source = "计算"
         else:
             dividend_rate = default_data['dividend_rate']
-        print(f"✅ 港股红利低波ETF估值数据: 股息率={dividend_rate}% (来源: {source}, 可信度: {credibility:.1%})")
+        print(f"[OK] 港股红利低波ETF估值数据: 股息率={dividend_rate}% (来源: {source}, 可信度: {credibility:.1%})")
         return {
             "估值": f"{dividend_rate}%",
             "估值指标": "股息率",
@@ -167,7 +167,7 @@ def get_valuation_data(stock_name):
         }
     elif stock_name == "标普500ETF南方":
         pe_percentile = default_data['pe_percentile']
-        print(f"✅ 标普500ETF南方估值数据: PE分位={pe_percentile}% (来源: {source}, 可信度: {credibility:.1%})")
+        print(f"[OK] 标普500ETF南方估值数据: PE分位={pe_percentile}% (来源: {source}, 可信度: {credibility:.1%})")
         return {
             "估值": f"{pe_percentile}%",
             "估值指标": "PE分位",
@@ -176,7 +176,7 @@ def get_valuation_data(stock_name):
             "可信度": f"{credibility:.1%}"
         }
     else:
-        print(f"❌ {stock_name}估值数据获取失败，使用默认值")
+        print(f"[ERROR] {stock_name}估值数据获取失败，使用默认值")
         # 返回默认值
         return {
             "估值": "N/A",
