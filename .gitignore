@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+
+# Data files
+data/
+
+# Logs
+logs/
+
+# Configuration files with secrets
+config/config.yaml
+
+# IDE
+.vscode/
+.idea/
+
+# Windows
+Thumbs.db
+
+# Mac
+.DS_Store

@@ -1,0 +1,17 @@
+positions:
+  中证红利ETF:
+    price: 1.58
+    shares: 10500
+  交通银行:
+    price: 6.99
+    shares: 800
+  标普500ETF南方:
+    price: 1.662
+    shares: 400
+  港股红利低波ETF:
+    price: 1.181
+    shares: 1000
+  长江电力:
+    price: 26.7
+    shares: 600
+total_assets: 40047.8
